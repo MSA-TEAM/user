@@ -1,35 +1,58 @@
+#!groovy
 node {
+    properties([
+        pipelineTriggers([
+            [$class: 'GenericTrigger',
+                genericVariables: [
+                    [expressionType: 'JSONPath', key: 'before', value: '$.before'],
+                    [expressionType: 'JSONPath', key: 'after', value: '$.after'],
+                    [expressionType: 'JSONPath', key: 'reference', value: '$.ref'],
+                    [expressionType: 'JSONPath', key: 'repository', value: '$.repository.full_name']
+                ],
+                genericRequestVariables: [
+                    [key: 'requestWithNumber', regexpFilter: '[^0-9]'],
+                    [key: 'requestWithString', regexpFilter: '']
+                ],
+                genericHeaderVariables: [
+                    [key: 'headerWithNumber', regexpFilter: '[^0-9]'],
+                    [key: 'headerWithString', regexpFilter: '']
+                ],
+                regexpFilterText: '$repository/$reference',
+                regexpFilterExpression: 'MSA/apireg/refs/heads/master'
+            ]
+        ])
+    ])
 
-    stage ('Checkout') {
-        checkout([$class: 'GitSCM',
-            branches: [[name: '*/master']],
-            doGenerateSubmoduleConfigurations: false, extensions: [],
-            submoduleCfg: [],
-            userRemoteConfigs: [[credentialsId: 'DevPro', url: 'https://devpro.ktds.co.kr/msa/user.git']]])
+    stage('Checkout') {
+        checkout scm
     }
 
-
-    stage ('Script'){
-        sh 'ssh ec2-user@172.31.7.77 "mkdir -p /home/ec2-user/user/log"'
-        sh 'scp ./start.sh ec2-user@172.31.7.77:/home/ec2-user/user'
-        sh 'scp ./shutdown.sh ec2-user@172.31.7.77:/home/ec2-user/user'
-        sh 'ssh ec2-user@172.31.7.77 "chmod a+x /home/ec2-user/user/*.sh"'
+    stage('Test') {
+        sh './gradlew test || true'
     }
 
-    stage ('Shutdown Server'){
-        sh 'ssh ec2-user@172.31.7.77 "/home/ec2-user/user/shutdown.sh || true"'
+    stage('Build') {
+        try {
+            sh './gradlew clean build -x test'
+        } catch(e) {
+            mail subject: "Jenkins Job '${env.JOB_NAME}' (${env.BUILD_NUMBER}) failed with ${e.message}",
+                to: 'jungim.kim@sicc.co.kr',
+                body: "Please go to $env.BUILD_URL."
+        }
     }
 
-    stage ('Build') {
-        sh './gradlew clean build'
+    stage('Archive') {
+        parallel (
+            "Archive Artifacts" : {
+                archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
+            },
+            "Docker Image Push" : {
+                sh './gradlew dockerPush'
+            }
+        )
     }
 
-    stage ('Distribution') {
-        sh 'scp build/libs/user-1.0.0-RELEASE.jar ec2-user@172.31.7.77:/home/ec2-user/user'
+    stage('Deploy') {
+        sh 'kubectl apply --namespace=development -f deployment.yaml'
     }
-
-    stage ('Start Server') {
-        sh 'ssh ec2-user@172.31.7.77 "/home/ec2-user/user/start.sh /home/ec2-user/user/user-1.0.0-RELEASE.jar prd"'
-    }
-
 }

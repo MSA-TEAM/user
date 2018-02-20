@@ -43,8 +43,10 @@ public class UserController {
     public ResponseEntity<User> save(@RequestBody User user) {
         User newUser = service.save(user);
 
-        //URI uri = MvcUriComponentsBuilder.fromController(getClass())
-        //        .path("/{id}").buildAndExpand((user.getUserName()).toUri();
+        URI uri = MvcUriComponentsBuilder.fromController(getClass())
+                .path("/{id}")
+                .buildAndExpand(user.getUserName())
+                .toUri();
 
         return ResponseEntity.created(uri).body(newUser);
     }
