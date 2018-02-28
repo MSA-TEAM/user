@@ -22,7 +22,7 @@ import org.springframework.web.servlet.mvc.method.annotation.MvcUriComponentsBui
 import com.ktds.msa.user.common.exception.UserNotFoundException;
 import com.ktds.msa.user.domain.User;
 import com.ktds.msa.user.service.UserService;
-import com.ktds.msa.user.service.UserService1;
+import org.springframework.web.servlet.support.ServletUriComponentsBuilder;
 
 @RestController
 @RequestMapping("/user")
@@ -33,12 +33,7 @@ public class UserController {
     @Autowired
     private UserService service;
 
-    @Autowired
-    private UserService1 service1;
 
-    @Autowired
-	@Resource(name="sqlSession")
-	SqlSession sql_session;    
 
     @GetMapping("/{username}")
     public ResponseEntity<User> query1(@PathVariable String tenantId, @PathVariable String cpcd, @PathVariable String username) throws InterruptedException {
@@ -46,7 +41,7 @@ public class UserController {
         logger.info("Sleuth Test");
         //sleuthService.doSomeWorkNewSpan();
       
-        return service1.queryByEmailId(tenantId, cpcd, username)
+        return service.queryById(username)
                 .map(ResponseEntity::ok)
                 .orElseThrow(()-> new UserNotFoundException(username));
     }
@@ -57,22 +52,22 @@ public class UserController {
 
         URI uri = MvcUriComponentsBuilder.fromController(getClass())
                 .path("/{id}")
-                .buildAndExpand(user.getName())
+                .buildAndExpand(user.getUserName())
                 .toUri();
 
         return ResponseEntity.created(uri).body(newUser);
     }
 
     @PutMapping("/{username}")
-//    public ResponseEntity<User> edit(@PathVariable String username, @RequestBody User user) {
-//        return service.queryById(username)
-//                .map(u->{
-//                    User newUser = service.save(new User(user.getName(), user.getPassword()));
-//
-//                    URI selfLink = URI.create(ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
-//                    return ResponseEntity.created(selfLink).body(newUser);
-//                }).orElseThrow(()->new UserNotFoundException(username));
-//    }
+    public ResponseEntity<User> edit(@PathVariable String username, @RequestBody User user) {
+        return service.queryById(username)
+                .map(u->{
+                    User newUser = service.save(new User(user.getUserName(),user.getUserName(), user.getUserPass()));
+
+                    URI selfLink = URI.create(ServletUriComponentsBuilder.fromCurrentRequest().toUriString());
+                    return ResponseEntity.created(selfLink).body(newUser);
+                }).orElseThrow(()->new UserNotFoundException(username));
+    }
 
     @DeleteMapping("/{username}")
     public ResponseEntity<User> removeUser(@PathVariable  String username) {
