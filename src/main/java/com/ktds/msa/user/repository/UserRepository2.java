@@ -8,8 +8,8 @@ import org.springframework.stereotype.Repository;
 import com.ktds.msa.user.domain.User;
 
 @Repository
-public interface UserRepository extends CrudRepository<User, Long> {
-
-    Optional<User> findByUserName(String username);
+public interface UserRepository2 extends CrudRepository<User, Long> {
+    
+	Optional<User> userInfo(String tenant_id, String cp_cd, String email_id);
 
 }
