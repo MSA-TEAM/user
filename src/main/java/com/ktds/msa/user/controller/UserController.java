@@ -25,7 +25,7 @@ public class UserController {
 
 
     @GetMapping("/{username}")
-    public ResponseEntity<User> query1(@PathVariable String tenantId, @PathVariable String cpcd, @PathVariable String username) throws InterruptedException {
+    public ResponseEntity<User> query1(@PathVariable String username) throws InterruptedException {
 
         logger.info("Sleuth Test");
         //sleuthService.doSomeWorkNewSpan();
