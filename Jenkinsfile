@@ -47,7 +47,7 @@ node {
                 archiveArtifacts artifacts: '**/build/libs/*.jar', fingerprint: true
             },
             "Docker Image Push" : {
-                sh './gradlew dockerPush'
+                sh './gradlew dockerPush -x test'
             }
         )
     }
